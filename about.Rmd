@@ -1,0 +1,115 @@
+---
+title: "About Me"
+output:
+  html_document:
+    css: styles.css
+    includes:
+      in_header: header.html
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+<nav class="navbar">
+  <div class="nav-brand">AM</div>
+  <ul class="nav-links">
+    <li><a href="index.html">Home</a></li>
+    <li><a href="about.html" class="active">About Me</a></li>
+    <li><a href="projects.html">Projects</a></li>
+  </ul>
+</nav>
+
+<section class="page-hero">
+  <h1 class="page-title">About Me</h1>
+  <div class="title-underline"></div>
+</section>
+
+<section class="about-section">
+  <div class="about-grid">
+    <div class="about-photo-col">
+      <div class="photo-placeholder">
+        <span>Your Photo Here</span>
+        <p style="font-size:0.8rem; margin-top:0.5rem;">Replace with your image in the .Rmd file</p>
+      </div>
+    </div>
+    <div class="about-text-col">
+      <h2>Hi there! 👋</h2>
+      <p>
+        I'm Anastasiia Merchanskaia, a passionate researcher and data analyst based in [Your City]. 
+        I love working with data to uncover patterns and tell meaningful stories.
+      </p>
+      <p>
+        Currently [studying/working] at [Your Institution/Company], I focus on [your research area or field]. 
+        My work sits at the intersection of [field 1] and [field 2], and I'm always excited to explore new methods and tools.
+      </p>
+      <p>
+        When I'm not analyzing data, you'll find me [hobby 1], [hobby 2], or [hobby 3].
+      </p>
+      <a href="resume.pdf" class="btn-primary" download>Download CV</a>
+    </div>
+  </div>
+</section>
+
+<section class="skills-section">
+  <h2 class="section-title">Skills & Tools</h2>
+  <div class="skills-grid">
+    <div class="skill-group">
+      <h3>Programming</h3>
+      <div class="skill-tags">
+        <span class="tag">R</span>
+        <span class="tag">Python</span>
+        <span class="tag">SQL</span>
+        <span class="tag">Git</span>
+      </div>
+    </div>
+    <div class="skill-group">
+      <h3>Analysis</h3>
+      <div class="skill-tags">
+        <span class="tag">Statistics</span>
+        <span class="tag">Machine Learning</span>
+        <span class="tag">Data Viz</span>
+        <span class="tag">ggplot2</span>
+      </div>
+    </div>
+    <div class="skill-group">
+      <h3>Tools</h3>
+      <div class="skill-tags">
+        <span class="tag">RStudio</span>
+        <span class="tag">Quarto</span>
+        <span class="tag">Tableau</span>
+        <span class="tag">Excel</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="education-section">
+  <h2 class="section-title">Education</h2>
+  <div class="timeline">
+    <div class="timeline-item">
+      <div class="timeline-dot"></div>
+      <div class="timeline-content">
+        <h3>Degree Name</h3>
+        <p class="timeline-place">University Name · 2020–2024</p>
+        <p>Brief description of your studies or thesis topic.</p>
+      </div>
+    </div>
+    <div class="timeline-item">
+      <div class="timeline-dot"></div>
+      <div class="timeline-content">
+        <h3>Previous Degree or Certificate</h3>
+        <p class="timeline-place">Institution Name · 2016–2020</p>
+        <p>Brief description of your studies.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <p>© 2026 Anastasiia Merchanskaia · Built with R Markdown</p>
+  <div class="social-links">
+    <a href="https://github.com/yourusername" target="_blank">GitHub</a>
+    <a href="https://linkedin.com/in/yourprofile" target="_blank">LinkedIn</a>
+  </div>
+</footer>
