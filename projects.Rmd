@@ -5,6 +5,10 @@ output:
     css: styles.css
     includes:
       in_header: header.html
+    theme: null
+    highlight: null
+    self_contained: false
+    mathjax: null
 ---
 
 ```{r setup, include=FALSE}
