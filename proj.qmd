@@ -1,0 +1,66 @@
+---
+# ============================================================
+# PROJECTS PAGE (proj.qmd)
+# Showcases your work with embedded PDF previews so visitors
+# can read your reports directly on the page.
+# ============================================================
+
+title: "Projects"   # ✏️ Shown in the browser tab and page header
+---
+
+```{=html}
+<!-- ============================================================
+  OPTIONAL: Short intro sentence at the top of the page.
+  ✏️ Replace or delete this.
+  Example: "Here's a selection of projects from my coursework and personal work."
+============================================================ -->
+```
+
+
+------------------------------------------------------------------------
+
+```{=html}
+<!-- ============================================================
+  PROJECT 1
+  ✏️ Fill in every placeholder marked with ✏️
+  Copy this entire block (up to the next ---) to add more projects.
+============================================================ -->
+```
+
+## Predicting Adult Obesity Rates Using Socioeconomic and Food Access Data
+
+**Course:** STOR 320 — Methods and Models of Data Science\
+**Date:** Fall 2025\
+**Tags:** `R` `Data Analysis` `Visualization` `Modeling` `Group Project` <!-- Tags: just type whatever labels apply, wrapped in backticks like above -->
+
+✏️ Write 2–3 sentences describing what this project is about, what problem it solves, and what tools or methods you used. Keep it approachable — imagine explaining it to someone outside your major.
+
+```{=html}
+<!-- PDF PREVIEW
+  - Replace "example_report.pdf" with your actual filename
+  - Make sure the PDF is saved in the same folder as this .qmd file
+  - width="100%" makes it stretch to fill the page column
+  - height="600px" controls how tall the preview box is — increase for longer docs
+  - The <p> fallback text shows only if the browser can't render the PDF inline
+    (uncommon, but good to have)
+-->
+```
+
+<iframe src="Final_Report_STOR.320.Group_8.html" width="100%" height="600px" style="border: 1px solid #ddd; border-radius: 4px;">
+
+<p>Your browser can't preview PDFs. <a href="✏️ Final_Report_STOR.320.Group_8.html">Click here to download instead.</a></p>
+
+</iframe>
+
+<!-- OPTIONAL: direct download link below the preview -->
+
+
+------------------------------------------------------------------------
+
+```{=html}
+<!-- ============================================================
+  PROJECT 2
+  ✏️ Same structure as above — fill in your details
+============================================================ -->
+```
+

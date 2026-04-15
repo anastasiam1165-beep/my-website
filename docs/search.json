@@ -1,0 +1,51 @@
+[
+  {
+    "objectID": "proj.html",
+    "href": "proj.html",
+    "title": "Projects",
+    "section": "",
+    "text": "✏️ A brief intro about your projects goes here."
+  },
+  {
+    "objectID": "aboutme.html",
+    "href": "aboutme.html",
+    "title": "About Me",
+    "section": "",
+    "text": "I am a Statistics and Analytics student at UNC Chapel Hill. After graduation, I plan to pursue a Master’s degree to continue my education and deepen my knowledge in statistics and data science.\nI have proficient experience with tools like R, Python, and SQL, and I have built projects analyzing large datasets to understand patterns and relationships.\n\n✏️ My Resume\n\nTo view more information about my projects, please visit the Projects tab.\n\nContact Information:\n\nEmail: anastasiam1165@gmail.com\nLinkedIn: Anastasiia Merchanskaia"
+  },
+  {
+    "objectID": "proj.html#project-title",
+    "href": "proj.html#project-title",
+    "title": "Projects",
+    "section": "✏️ Project Title",
+    "text": "✏️ Project Title\nCourse: ✏️ STOR 320 — Methods and Models of Data Science\nDate: ✏️ Fall 2025\nTags: ✏️ R Data Analysis Visualization Modeling Group Project \n✏️ Write 2–3 sentences describing what this project is about, what problem it solves, and what tools or methods you used. Keep it approachable — imagine explaining it to someone outside your major.\n\n\n&lt;p&gt;\nYour browser can’t preview PDFs. &lt;a href=\"✏️ Final_Report_STOR.320.Group_8.html\"&gt;Click here to download instead.&lt;/a&gt;\n&lt;/p&gt;"
+  },
+  {
+    "objectID": "proj.html#project-title-1",
+    "href": "proj.html#project-title-1",
+    "title": "Projects",
+    "section": "✏️ Project Title",
+    "text": "✏️ Project Title\nCourse: ✏️ STOR 155 — Introduction to Statistics\nDate: ✏️ Spring 2025\nTags: ✏️ R Statistics ggplot2\n✏️ Description of your second project goes here.\n\n&lt;p&gt;\nYour browser can’t preview PDFs. &lt;a href=\"✏️ example_report2.pdf\"&gt;Click here to download instead.&lt;/a&gt;\n&lt;/p&gt;\n\n⬇ Download PDF"
+  },
+  {
+    "objectID": "proj.html#project-title-2",
+    "href": "proj.html#project-title-2",
+    "title": "Projects",
+    "section": "✏️ Project Title",
+    "text": "✏️ Project Title\nCourse: ✏️ BIOL 201 — Cell Biology\nDate: ✏️ Fall 2025\nTags: ✏️ Research Lab Report Data Collection\n✏️ Description of your third project goes here.\n\n&lt;p&gt;\nYour browser can’t preview PDFs. &lt;a href=\"✏️ example_report3.pdf\"&gt;Click here to download instead.&lt;/a&gt;\n&lt;/p&gt;\n\n⬇ Download PDF"
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Anastasiia Merchanskaia’s Website",
+    "section": "",
+    "text": "Welcome to my personal website! Here you will find information about me and my work. Feel free to explore using the navigation bar above.\n\nVisit the About Me tab to learn more about my background and how to get in touch.\nVisit the Projects tab to see examples of my work."
+  },
+  {
+    "objectID": "proj.html#predicting-adult-obesity-rates-using-socioeconomic-and-food-access-data",
+    "href": "proj.html#predicting-adult-obesity-rates-using-socioeconomic-and-food-access-data",
+    "title": "Projects",
+    "section": "Predicting Adult Obesity Rates Using Socioeconomic and Food Access Data",
+    "text": "Predicting Adult Obesity Rates Using Socioeconomic and Food Access Data\nCourse: STOR 320 — Methods and Models of Data Science\nDate: Fall 2025\nTags: R Data Analysis Visualization Modeling Group Project \n✏️ Write 2–3 sentences describing what this project is about, what problem it solves, and what tools or methods you used. Keep it approachable — imagine explaining it to someone outside your major.\n\n\n&lt;p&gt;\nYour browser can’t preview PDFs. &lt;a href=\"✏️ Final_Report_STOR.320.Group_8.html\"&gt;Click here to download instead.&lt;/a&gt;\n&lt;/p&gt;"
+  }
+]

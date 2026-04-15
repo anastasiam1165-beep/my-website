@@ -1,0 +1,811 @@
+---
+title: "Final Paper"
+author: "STOR 320.002 Group 8"
+date: "`r format(Sys.time(), '%B %d, %Y')`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,warning=F)
+options(scipen=999)
+
+
+library(tidyverse)
+library(broom)
+library(modelr)
+library(dplyr)
+library(RColorBrewer)
+library(ggplot2)
+library(stringr)
+library(caret)
+library(readr)
+library(reactable)
+library(glmnet)
+library(leaflet)
+library(sf)
+library(dplyr)
+library(tigris)
+library(datasets)
+library(htmltools)
+```
+
+```{r download-data, include=FALSE}
+
+data_url <- ("https://ers.usda.gov/sites/default/files/_laserfiche/DataFiles/113063/2025-food-environment-atlas-data.zip?v=60581](https://ers.usda.gov/sites/default/files/_laserfiche/DataFiles/113063/2025-food-environment-atlas-data.zip?v=60581")
+dest_file <- "2025-food-environment-atlas-data.zip"
+```
+
+
+
+
+# INTRODUCTION
+
+Obesity is a serious and costly chronic disease that affects more than two in five adults in the United States. Its consequences include increased risks of diabetes and cardiovascular disease, as well as a shorter life expectancy. Although obesity is often viewed as an individual health issue, research increasingly shows that people’s environments and economic circumstances play a significant role in shaping their diets and long-term health. Income, transportation access, and the types of food stores available in a community all influence daily choices in ways that extend beyond personal behavior.
+To study these structural influences, we use the USDA Food Environment Atlas. This national dataset provides detailed information on food outlet density, food access, demographics, and socioeconomic conditions across states. Because it combines environmental and economic measures, the dataset enables us to model how various aspects of the food environment relate to adult obesity rates.
+
+Our first question addresses two variables related to access and income:
+**Can the availability of low-cost, low-nutrition retail options (e.g., dollar stores) be paired with income to predict adult obesity rates in a given state?** 
+This question matters because not all food stores serve communities in the same way. Grocery stores and specialty markets offer healthier options, while dollar stores tend to stock inexpensive, highly processed foods and are often concentrated in lower-income areas. These differences can shape dietary patterns and may help explain why some communities experience higher obesity rates. To capture additional structural factors, we also include measures of food access, such as the percentage of residents who live far from a grocery store or who lack access to a vehicle. Limited physical access can push communities toward less nutritious options, even when healthier foods are available elsewhere. Income is also included because it shapes both affordability and the practicality of purchasing healthier foods.
+
+The second question asks:
+ **To what extent can race and age demographics predict adult obesity rates across U.S. states, and does prediction accuracy improve when both are included?**
+ The significance of this question is that it answers questions about racial disparities when it comes to obesity, as obesity is not just a genetic and individual issue. This can answer questions regarding social and systemic factors and how racism and ageism can contribute to obesity rates. Understanding demographic predictors can uncover racial and age inequities. With this information, there can be a push to allocate resources that effectively meet demographic needs. Racial and age inequity impacts the economic well-being and public health of Americans as it may address concerns about discrimination, unequal access to resources and care, and socioeconomic disparities. 
+
+
+# DATA
+
+This project uses data from the `USDA Food Environment Atlas`, a dataset published by the Economic Research Service within the United States Department of Agriculture. The Atlas compiles national, state, and county-level information on varying types of food accessibility across the United States. The version used in this project was last updated on April 21, 2025, and covers a wide range of indicators from 2012 to 2025. The data was split up across multiple spreadsheet tabs by superficial categories (i.e.: Access, Stores, Restaurants, etc.) Overall, the variables of interest that are investigated in this paper involve 1) information about the numerical density of varying types of food resources as a ratio to population density and 2) the percent of a specific demographic population that has “low access” to food stores.
+
+
+```{r results='hide', message=FALSE, warning=FALSE,  echo=FALSE}
+
+### Code for the Q1. We used state_df
+
+atlas <- read_csv("StateAndCountyData.csv")
+glimpse(atlas)
+
+OUTCOME_CODE <- "PCT_OBESE_ADULTS22"
+STORE_DENSITY_CODES <- c(
+  "DSPTH20",    # Dollar stores / 1,000 pop (2020)
+  "SPECSPTH20", # Specialized food stores / 1,000 pop (2020)
+  "GROCPTH20",  # Grocery stores / 1,000 pop (2020)
+  "FFRPTH20"    # Fast-food restaurants / 1,000 pop (2020)
+)
+
+# Low-access percentage variables (2019)
+ACCESS_PERCENT_CODES <- c(
+  "PCT_LACCESS_POP19",     # % population low access to store (2019)
+  "PCT_LACCESS_HHNV19",    # % households, no car & low access (2019)
+  "PCT_LACCESS_CHILD19",   # % children low access to store (2019)
+  "PCT_LACCESS_SENIORS19"  # % seniors low access to store (2019)
+)
+
+INCOME_CODE <- "MEDHHINC21" # Median household income, 2021
+
+ALL_CODES <- c(
+  OUTCOME_CODE,
+  INCOME_CODE,
+  # Store density
+  "GROCPTH20",
+  "SPECSPTH20",
+  "DSPTH20",
+  "FFRPTH20",
+  # Access %
+  "PCT_LACCESS_POP19",
+  "PCT_LACCESS_HHNV19",
+  "PCT_LACCESS_CHILD19",
+  "PCT_LACCESS_SENIORS19"
+)
+
+atlas_small <- atlas %>%
+  filter(Variable_Code %in% ALL_CODES) %>%
+  mutate(
+    Value = na_if(Value, -9999),
+    Value = na_if(Value, -8888)
+  )
+
+atlas_small %>%
+  count(Variable_Code)
+
+state_df <- atlas_small %>%
+  group_by(State, Variable_Code) %>%
+  summarize(
+    mean_value = mean(Value, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  pivot_wider(
+    names_from = Variable_Code,
+    values_from = mean_value
+  ) %>%
+
+  drop_na(all_of(ALL_CODES))
+
+
+glimpse(state_df)
+nrow(state_df) 
+
+y <- state_df[[OUTCOME_CODE]]
+
+```
+
+```{r, echo=FALSE}
+reactable(
+  state_df,
+  height = 300,
+  width=900,
+  theme = reactableTheme(style = list(fontSize = 12, padding = 3), cellPadding = 3,    headerStyle = list(fontSize = 12)),fullWidth = FALSE)
+```
+Above is a list of the variables of interest that are investigated in our first question. From left to right, the variables investigated in this question are: the number of dollar stores per 1,000 people in 2020, the number of fast-food restaurants per 1,000 people in 2020, the number of grocery stores per 1,000 people in 2020, the median household income in 2021, the percent of a population with children that have low access to a food store in 2019, the percent of a population with households with no car and low access to a food store in 2019, the percent of a population with low access to a food store in 2019, the percent of a population with seniors that have low access to a food store in 2019, the adult obesity rate percentage in 2022, and the number of specialized food stores per 1,000 people in 2020. Each variable was assigned a value within a state and specific county. The data was utilized as seen in the code setup below. Below is a list of variables investigated in our second question.
+
+
+```{r results='hide', message=FALSE, warning=FALSE,  echo=FALSE}
+
+### Code for the Q2. We used state_df2
+
+vars_needed <- c("PCT_OBESE_ADULTS22","PCT_NHWHITE20", "PCT_NHBLACK20", "PCT_HISP20", "PCT_NHASIAN20",
+  "PCT_65OLDER20", "PCT_18YOUNGER20")
+
+atlas <- atlas %>% rename_with(~gsub(" ", "", .x))
+
+atlas_small <- atlas %>%
+  filter(Variable_Code %in% vars_needed) %>%
+  mutate(Value = ifelse(Value < 0, NA, Value))
+
+state_df2 <- atlas_small %>%
+  group_by(State, Variable_Code) %>%
+  summarise(mean = mean(Value, na.rm = TRUE)) %>%
+  pivot_wider(names_from = Variable_Code, values_from = mean) %>%
+  arrange(State)
+
+```
+
+
+```{r, echo=FALSE}
+reactable(
+  state_df,
+  height = 300,
+  width=900,
+  theme = reactableTheme(style = list(fontSize = 12, padding = 3), cellPadding = 3,    headerStyle = list(fontSize = 12)),fullWidth = FALSE)
+```
+
+
+
+The first visualization below displays the relationship between the percent of a population with low access to a food store, the number of grocery stores, and the number of fast-food restaurants in a county. The weakly positive trend line of the figure below indicates that there are not necessarily more fast food restaurants in an area if there are less grocery stores. Additionally, as seen from the far right outlier, despite having the most grocery stores per 1,000 people, there is a high percentage of those with low food access within the population. In other words, having more grocery stores per 1,000 people does not necessarily mean food is more accessible. An example of this is in rural areas with smaller populations, where the ratio of stores to people is larger but the stores themselves physically remain far and out of reach. Overall, the majority of bubbles that are pink/red across the graph indicate that food access is a widespread issue, no matter how many grocery or fast food options exist per capita.
+
+```{r,echo=F, message=FALSE, warning=FALSE}
+knitr::opts_chunk$set(
+  fig.width = 6, 
+  fig.height = 4,
+  out.width = '70%')
+
+plot_df <- atlas %>%
+  filter(Variable_Code %in% c("PCT_LACCESS_POP19", "GROCPTH20", "FFRPTH20")) %>%
+  mutate(
+    Value = na_if(Value, -9999),
+    Value = na_if(Value, -8888)
+  ) %>%
+  group_by(State, Variable_Code) %>%
+  summarize(mean_value = mean(Value, na.rm = TRUE), .groups = "drop") %>%
+  pivot_wider(names_from = Variable_Code, values_from = mean_value) %>%
+  drop_na()
+
+ggplot(plot_df, aes(x = GROCPTH20, y = FFRPTH20)) +
+  geom_point(aes(size = PCT_LACCESS_POP19, color = PCT_LACCESS_POP19), alpha = 0.7) +
+  geom_smooth(method = "lm", se = FALSE, color = "gray50", linetype = "dashed") +
+  scale_color_gradient(low = "blue", high = "red") +
+  scale_size_continuous(range = c(2, 10)) +
+  
+  labs(
+    title = "Food Environment Landscape",
+    subtitle = "Store Density vs. Low Access Population (2019-2020)",
+    x = "Grocery Stores per 1,000 Pop",
+    y = "Fast Food Restaurants per 1,000 Pop",
+    color = "% Low Access",
+    size = "% Low Access") +
+  theme_minimal()
+```
+
+
+
+The next visualization displays the relationship between race and obesity levels.
+
+```{r,echo=F, message=FALSE, warning=FALSE}
+
+RACE_CODES <- c(
+  "PCT_NHWHITE20",  # % Non-Hispanic White
+  "PCT_NHBLACK20",  # % Non-Hispanic Black
+  "PCT_HISP20",     # % Hispanic
+  "PCT_NHASIAN20"   # % Non-Hispanic Asian
+)
+OUTCOME_CODE <- "PCT_OBESE_ADULTS22"
+
+race_df <- atlas %>%
+  filter(Variable_Code %in% c(RACE_CODES, OUTCOME_CODE)) %>%
+  mutate(
+    Value = na_if(Value, -9999),
+    Value = na_if(Value, -8888)
+  ) %>%
+  group_by(State, Variable_Code) %>%
+  summarize(mean_value = mean(Value, na.rm = TRUE), .groups = "drop") %>%
+  pivot_wider(names_from = Variable_Code, values_from = mean_value) %>%
+  drop_na()
+
+plot_data <- race_df %>%
+  pivot_longer(
+    cols = all_of(RACE_CODES),
+    names_to = "Race_Group",
+    values_to = "Percent_Pop"
+  ) %>%
+  mutate(Race_Group = recode(Race_Group,
+  "PCT_NHWHITE20" = "Non-Hispanic White (%)",
+  "PCT_NHBLACK20" = "Non-Hispanic Black (%)",
+  "PCT_HISP20"    = "Hispanic (%)",
+  "PCT_NHASIAN20" = "Non-Hispanic Asian (%)"
+  ))
+
+ggplot(plot_data, aes(x = Percent_Pop, y = PCT_OBESE_ADULTS22)) +
+  geom_point(alpha = 0.6, color = "darkblue") +
+  geom_smooth(method = "lm", color = "red", linetype = "dashed") +
+  facet_wrap(~ Race_Group, scales = "free_x") +
+  
+  labs(
+    title = "Relationship Between Racial Demographics and Obesity",
+    subtitle = "State Level Analysis (2020-2022)",
+    x = "Percentage of Population",
+    y = "Adult Obesity Rate (%)"
+  ) +
+  theme_minimal()
+
+```
+
+
+The figure indicates that states with higher populations of Hispanic or Non-Hispanic Asian populations tend to have lower obesity rates. There is an especially strong relationship between higher Non-Hispanic Asian populations and lower obesity rates. Conversely, the upwards slopes for Non-Hispanic Black and Non-Hispanic White populations indicate that states with higher Black or White populations tend to have higher obesity rates. Geographically, states in the West and Midwest tend to have higher Black or White populations, which can suggest that obesity rates in these areas will be higher. Additionally, being in sparsely populated areas in the West and the mountains can act as obstacles to easy access to healthy food options. 
+
+
+The next visualization displays the relationship between state, obesity levels, and income.
+
+```{r results='hide', message=FALSE, warning=FALSE,  echo=FALSE}
+
+data_url <- ("https://drive.google.com/file/d/1C-yPihNSQr0yPHN66gUXN1BZm0Tln27O/edit")
+data_url <- ("https://cloud.r-project.org/web/packages/leaflet/leaflet.pdf")
+state_lookup <- data.frame(State_Abbrev = state.abb, State_Full= state.name)
+
+state_df_full <- state_df %>%
+  left_join(state_lookup, by = c("State" = "State_Abbrev")) %>%
+  rename(State_Name = State_Full)
+
+us_states <- states(cb = TRUE, resolution = "20m")
+
+filter_list <- c("Puerto Rico","Commonwealth of Northern Mariana Islands","Guam",
+  "American Samoa","United States Virgin Islands")
+
+us_states_filtered <- us_states %>%
+  filter(!NAME %in% filter_list)
+
+map_data <- us_states_filtered %>%
+  left_join(state_df_full, by = c("NAME" = "State_Name")) %>%
+  filter(!is.na(PCT_OBESE_ADULTS22))
+
+pal <- colorNumeric(palette = "Reds",domain  = map_data$PCT_OBESE_ADULTS22)
+
+label_text <- paste(
+  "<strong>", map_data$NAME, "</strong><br/>",
+  "Adult Obesity Rate (2022): ", round(map_data$PCT_OBESE_ADULTS22, 1), "%<br/>",
+  "Median Household Income: $",
+  format(round(map_data$MEDHHINC21, 0), big.mark = ","))
+
+labels <- lapply(label_text, htmltools::HTML)
+
+obesity_map <- leaflet(map_data) %>%
+  addProviderTiles(providers$CartoDB.Positron) %>%
+  setView(lng = -98.5795, lat = 39.8283, zoom = 4) %>%
+  addPolygons(
+    fillColor = ~pal(PCT_OBESE_ADULTS22),
+    weight = 1,
+    opacity = 1,
+    color = "white",
+    fillOpacity = 0.8,
+    highlightOptions = highlightOptions(
+      weight = 3,
+      color = "grey",
+      fillOpacity = 0.9,
+      bringToFront = T),
+    label = labels) %>%
+  addLegend(pal = pal,values  = ~PCT_OBESE_ADULTS22, opacity = 0.7, title = "Adult Obesity Rate (%)",position = "bottomright")
+
+```
+
+```{r,echo=FALSE}
+obesity_map
+```
+
+
+
+As predicted in the previous visualization, the figure indicates that those in the West/Midwest tend to have higher obesity rates than those on the East and West coasts. States in the Midwest that are more geographically mountainous, remote, and with more spread out populations tend to have higher obesity rates. When hovering over each state, the average income is displayed on the map. The map shows that states with higher obesity rates tend to have lower average incomes compared to states with lower obesity rates. This visual shows that both geography and income are obstacles to accessing healthy and affordable food. Food accessibility, then, can be approached as an issue spurred by geography as well as socioeconomic differences. 
+
+
+# RESULTS
+
+**QUESTION  I**
+
+For our first question, we were curious whether or not we could leverage income as well as the availability of low-cost, low-nutrition retail options to predict adult obesity rates within a given state. We approached this by selecting `8 variables` that related to food availability. 4 of these represented the quantities of different types of stores within a given area, and the remaining 4 were percentages encapsulating food access for different age demographics. 
+We decided to use the caret package, a unified interface for fitting models using cross validation, to train our predictive model. After filtering the variables, handling missing values, and aggregating data into a new state level dataset consisting of our variables of choice, we were ready to begin training the model.
+We decided to create one model that only leveraged income to predict obesity rates, one model that leveraged both income and the food availability variables, and one model that leveraged both. To start, we constructed three predictor sets, X_food, X_income, and X_both. We then created a corresponding numeric vector Y that contained state level obesity rates.
+When training the model, we made sure to ensure cross-validation splits were the same each time it was run. We chose to use 5 folds, which means that the model was trained on ⅘ of the subsets of data and validated on the remaining ⅕. This process is repeated for all possible groups of 4. For the method, we used a linear regression model, which computes metrics like R², the coefficient of determination, and RMSE, which represents the average magnitude of the errors between the fitted and actual values in the model.
+
+
+```{r results='hide', message=FALSE, warning=FALSE,  echo=FALSE}
+
+X_food <- state_df %>% 
+  select(all_of(c(STORE_DENSITY_CODES, ACCESS_PERCENT_CODES)))
+
+X_income <- state_df %>%
+  select(all_of(INCOME_CODE))
+
+X_both <- state_df %>%
+  select(all_of(c(INCOME_CODE, STORE_DENSITY_CODES, ACCESS_PERCENT_CODES)))
+
+evaluate_model <- function(X, y, model_name, n_folds = 5) {
+  set.seed(123)
+  
+  df_model <- bind_cols(X, tibble(y = y))
+  formula <- as.formula("y ~ .")
+  
+  ctrl <- trainControl(method = "cv", number = n_folds)
+  
+  model_cv <- train(
+    formula,
+    data = df_model,
+    method = "lm",
+    trControl = ctrl
+  )
+  
+  rmse <- model_cv$results$RMSE
+  rsq  <- model_cv$results$Rsquared
+  
+  cat("\n", model_name, "\n", sep = "")
+  cat(strrep("-", nchar(model_name)), "\n", sep = "")
+  cat("Cross-validated RMSE:", round(rmse, 2), "\n")
+  cat("Cross-validated R^2 :", round(rsq, 3), "\n")
+  
+  final_lm <- lm(formula, data = df_model)
+  
+  list(
+    cv = model_cv,
+    lm = final_lm,
+    rmse = rmse,
+    rsq = rsq
+  )
+}
+
+model1 <- evaluate_model(X_food, y, "Model 1: Food Environment Only")
+model2 <- evaluate_model(X_income, y, "Model 2: Income Only")
+model3 <- evaluate_model(X_both, y, "Model 3: Combined Model")
+```
+
+```{r, echo=FALSE}
+results_tbl <- tibble(
+  Model = c("Food Environment Only", "Income Only", "Combined Model"),
+  RMSE  = c(model1$rmse, model2$rmse, model3$rmse),
+  R2    = c(model1$rsq,  model2$rsq,  model3$rsq))
+
+results_tbl
+```
+
+
+```{r results='hide', message=FALSE, warning=FALSE,  echo=FALSE}
+cat("\n\nCoefficients – Model 1: Food Environment Only\n")
+summary(model1$lm)
+
+cat("\n\nCoefficients – Model 2: Income Only\n")
+summary(model2$lm)
+
+cat("\n\nCoefficients – Model 3: Combined Model\n") 
+summary(model3$lm)
+
+state_pred <- state_df %>%
+  mutate(
+    actual = y,
+    pred_food   = predict(model1$lm),
+    pred_income = predict(model2$lm),
+    pred_both   = predict(model3$lm)
+  ) %>%
+  pivot_longer(
+    cols = starts_with("pred_"),
+    names_to = "model",
+    values_to = "predicted"
+  ) %>%
+  mutate(
+    model = recode(model,
+                   pred_food   = "Food Environment Only",
+                   pred_income = "Income Only",
+                   pred_both   = "Combined Model"))
+
+plot <- ggplot(state_pred, aes(predicted, actual)) +
+  geom_point() +
+  geom_abline(linetype = "dashed") +
+  facet_wrap(~ model) +
+  labs(
+    title = "Predicted vs Actual State Obesity Rates (2022)",
+    x = "Predicted Obesity (%)",
+    y = "Actual Obesity (%)"
+  ) +
+  theme_minimal()
+```
+```{r, echo=FALSE}
+print(plot)
+```
+
+
+After fitting and comparing the three models, we found that the income only model was the most efficient, with an `RMSE of 2.86` and an `R² of 0.537`. Since we initially assumed the combined model would be most efficient, we decided to see if any of the 8 variables within the food-environment model were hurting the efficiency of the model.
+To evaluate this, we leveraged the GLMNET package to run a lasso regression model, assigning lasso coefficients to each variable. The magnitude of the lasso coefficient determines how strong of a correlation each variable has to obesity rates. After running this, we found that the percentage variables all had very small coefficients, while the store density variables were much more strongly correlated. Specialized food stores per 1,000 and Dollar Stores per 1000 had the highest values.
+
+
+```{r, results = 'hide', message=FALSE, warning=FALSE,  echo=FALSE, fig.show='hide'}
+y <- state_df[[OUTCOME_CODE]]
+
+FOOD_ENV_CODES <- c(STORE_DENSITY_CODES, ACCESS_PERCENT_CODES)
+
+X_foodenv_df <- state_df %>%
+  select(all_of(FOOD_ENV_CODES))
+
+X_foodenv <- as.matrix(X_foodenv_df)
+
+set.seed(123)
+
+lasso_cv <- cv.glmnet(
+  x = X_foodenv,
+  y = y,
+  alpha = 1,       
+  nfolds = 5,       
+  standardize = TRUE, 
+  family = "gaussian")
+
+plot(lasso_cv)
+
+best_lambda <- lasso_cv$lambda.min
+best_lambda
+
+lasso_coefs <- coef(lasso_cv, s = "lambda.min")
+lasso_coefs
+
+mse_cv <- min(lasso_cv$cvm)
+
+rmse_cv <- sqrt(mse_cv)
+
+var_y <- var(y)
+r2_cv <- 1 - mse_cv / var_y
+
+cat("LASSO (food env only) – cross-validated performance:\n")
+cat("  Lambda min:", best_lambda, "\n")
+cat("  RMSE (CV):", round(rmse_cv, 2), "\n")
+cat("  R^2 (CV):", round(r2_cv, 3), "\n")
+
+lasso_final <- glmnet(
+  x = X_foodenv,
+  y = y,
+  alpha = 1,
+  lambda = best_lambda,
+  standardize = TRUE,
+  family = "gaussian")
+
+y_hat_lasso <- as.numeric(predict(lasso_final, newx = X_foodenv))
+
+lasso_plot_df <- tibble(
+  actual = y,
+  predicted = y_hat_lasso)
+
+ggplot(lasso_plot_df, aes(predicted, actual)) +
+  geom_point() +
+  geom_abline(linetype = "dashed") +
+  labs(
+    title = "LASSO: Predicted vs Actual State Obesity Rates (2022)",
+    x = "Predicted Obesity (%)",
+    y = "Actual Obesity (%)") +
+  theme_minimal()
+
+best_lambda <- lasso_cv$lambda.min
+lasso_coefs <- coef(lasso_cv, s = best_lambda)
+
+coef_df <- data.frame(
+  term = rownames(lasso_coefs),
+  estimate = as.numeric(lasso_coefs))
+
+coef_df <- coef_df %>%
+  filter(term != "(Intercept)")
+
+coef_df
+
+coef_df <- tibble(
+  term = c(
+    "DSPTH20",
+    "SPECSPTH20",
+    "GROCPTH20",
+    "FFRPTH20",
+    "PCT_LACCESS_POP19",
+    "PCT_LACCESS_HHNV19",
+    "PCT_LACCESS_CHILD19",
+    "PCT_LACCESS_SENIORS19"),
+  estimate = c(
+    15.9801372,
+    -21.9499280,
+    -5.3991118,
+    -11.0229016,
+    0.1300932,
+    0.1237599,
+    0.4449024,
+    -0.4269390))
+```
+
+
+```{r, echo=FALSE}
+print(
+  ggplot(coef_df, aes(x = reorder(term, estimate), y = estimate)) +
+    geom_col(fill = "steelblue") +
+    coord_flip() +
+    labs(
+      title = "LASSO Coefficients for Food Environment Variables",
+      x = "Variable",
+      y = "Coefficient"
+    ) +
+    theme_minimal())
+```
+
+
+
+With these findings, we decided to rerun the initial model without the percent access variables. So, the food environment model only consisted of `4 variables rather than 8`. We used the same exact code for the initial model training but with adjustments to account for the removed variables. This new trial showed that the combined model had the lowest R² and RMSE, at `2.71` and `0.545` respectively. These results not only illustrated that income and food environment data can be utilized to predict obesity rates, but also more specifically demonstrated that dollar store and specialized food store density are extremely strong predictors of this as well. The R² and RMSE for this model are definitely within a solid range for the realm of social sciences. 
+
+
+```{r, results = 'hide', message=FALSE, warning=FALSE,  echo=FALSE, fig.show='hide'}
+
+OUTCOME_CODE <- "PCT_OBESE_ADULTS22"   # Adult obesity, 2022
+INCOME_CODE  <- "MEDHHINC21"           # Median household income, 2021
+
+# Store density variables (2020) – ONLY THESE 4 NOW
+STORE_DENSITY_CODES <- c(
+  "DSPTH20",     # Dollar stores / 1,000 pop (2020)
+  "SPECSPTH20",  # Specialized food stores / 1,000 pop (2020)
+  "GROCPTH20",   # Grocery stores / 1,000 pop (2020)
+  "FFRPTH20"     # Fast-food restaurants / 1,000 pop (2020)
+)
+
+ALL_CODES <- c(
+  OUTCOME_CODE,
+  INCOME_CODE,
+  STORE_DENSITY_CODES)
+
+atlas_small <- atlas %>%
+  filter(Variable_Code %in% ALL_CODES) %>%
+  mutate(
+    Value = na_if(Value, -9999),
+    Value = na_if(Value, -8888))
+
+atlas_small %>%
+  count(Variable_Code)
+
+state_df <- atlas_small %>%
+  group_by(State, Variable_Code) %>%
+  summarize(
+    mean_value = mean(Value, na.rm = TRUE),
+    .groups = "drop") %>%
+  pivot_wider(names_from = Variable_Code, values_from = mean_value) %>%
+  drop_na(all_of(ALL_CODES))   
+
+y <- state_df[[OUTCOME_CODE]]
+
+# Model 1: Food environment only (4 store density vars)
+X_food <- state_df %>%
+  select(all_of(STORE_DENSITY_CODES))
+
+# Model 2: Income only
+X_income <- state_df %>%
+  select(all_of(INCOME_CODE))
+
+# Model 3: Combined environment + income
+X_both <- state_df %>%
+  select(all_of(c(INCOME_CODE, STORE_DENSITY_CODES)))
+
+evaluate_model <- function(X, y, model_name, n_folds = 5) {
+  set.seed(123)
+  
+  df_model <- bind_cols(X, tibble(y = y))
+  formula <- as.formula("y ~ .")
+  
+  ctrl <- trainControl(method = "cv", number = n_folds)
+  
+  model_cv <- train(
+    formula,
+    data = df_model,
+    method = "lm",
+    trControl = ctrl)
+  
+  rmse <- model_cv$results$RMSE
+  rsq  <- model_cv$results$Rsquared
+  
+  cat("\n", model_name, "\n", sep = "")
+  cat(strrep("-", nchar(model_name)), "\n", sep = "")
+  cat("Cross-validated RMSE:", round(rmse, 2), "\n")
+  cat("Cross-validated R^2 :", round(rsq, 3), "\n")
+  
+  final_lm <- lm(formula, data = df_model)
+  
+  list(
+    cv = model_cv,
+    lm = final_lm,
+    rmse = rmse,
+    rsq = rsq)
+}
+
+model1 <- evaluate_model(X_food,  y, "Model 1: Food Environment Only")
+model2 <- evaluate_model(X_income, y, "Model 2: Income Only")
+model3 <- evaluate_model(X_both,  y, "Model 3: Combined Model")
+```
+
+
+```{r, echo=FALSE}
+results_tbl <- tibble(
+  Model = c("Food Environment Only", "Income Only", "Combined Model"),
+  RMSE  = c(model1$rmse, model2$rmse, model3$rmse),
+  R2    = c(model1$rsq,  model2$rsq,  model3$rsq))
+
+results_tbl
+```
+
+```{r, results = 'hide', message=FALSE, warning=FALSE,  echo=FALSE, fig.show='hide'}
+cat("\n\nCoefficients – Model 1: Food Environment Only\n")
+summary(model1$lm)
+
+cat("\n\nCoefficients – Model 2: Income Only\n")
+summary(model2$lm)
+
+cat("\n\nCoefficients – Model 3: Combined Model\n")
+summary(model3$lm)
+
+state_pred <- state_df %>%
+  mutate(
+    actual     = y,
+    pred_food  = predict(model1$lm),
+    pred_income = predict(model2$lm),
+    pred_both   = predict(model3$lm)
+  ) %>%
+  pivot_longer(
+    cols = starts_with("pred_"),
+    names_to = "model",
+    values_to = "predicted"
+  ) %>%
+  mutate(
+    model = recode(model,
+                   pred_food   = "Food Environment Only",
+                   pred_income = "Income Only",
+                   pred_both   = "Combined Model"))
+```
+```{r, echo=FALSE}
+
+plot <- ggplot(state_pred, aes(predicted, actual)) +
+  geom_point() +
+  geom_abline(linetype = "dashed") +
+  facet_wrap(~ model) +
+  labs(
+    title = "Predicted vs Actual State Obesity Rates (2022)",
+    x = "Predicted Obesity (%)",
+    y = "Actual Obesity (%)"
+  ) +
+  theme_minimal()
+
+print(plot)
+```
+
+
+**QUESTION II**
+
+
+To answer our second question, we studied whether race and age demographics can be used to predict adult obesity rates across U.S. states. This is pivotal as understanding whether these factors predict obesity at the state level, enables us to identify where public health resources may be needed the most. Our goal was to see how much obesity varies with race and age (separately and together) and whether prediction improves when both groups of variables are included in the same model.
+To start, we used linear regression models because they enabled us to measure the independent contribution of each demographic variable while keeping others constant. Each observation in our dataset represents one U.S. state. For race, we used the percent of the population identifying as White, Black, Hispanic, or Asia. These are all from 2020. For age, we included the percent of residents 18 or younger and the percent of residents 65 or older. This is also from 2020. We created three models as seen below. The first used only race variables, the second used only age variables, and the third combined race and age into a single model. 
+
+
+**Model 1: Race Only**
+```{r, echo=FALSE}
+
+### From state_df2
+
+mod_race <- lm(PCT_OBESE_ADULTS22 ~ PCT_NHWHITE20 + PCT_NHBLACK20 +PCT_HISP20 + PCT_NHASIAN20, data = state_df2)
+
+summary(mod_race)
+```
+
+
+The first model above included the percentage of White, Black, Hispanic, and Asian residents in each state. The model explained about 33 percent of the variation in obesity rates `(since R² = 0.328)`. Most race variables were not statistically significant which means they did not exhibit strong evidence of a relationship once the model controlled for other groups. However, we noticed the one exception was the Asian population. This is because states with a higher percentage of Asian residents tended to have lower obesity rates `(as shown by the p-value of p = 0.0049)`.  The other race coefficients had weak/inconsistent relationships and large p-values. Thus, this tells us that racial composition alone does not fully explain obesity patterns at the state level (even if Asian percentage appears to have an independent association).
+
+
+
+**Model 2: Age Only**
+```{r, echo=FALSE}
+mod_age <- lm(PCT_OBESE_ADULTS22 ~ PCT_65OLDER20 + PCT_18YOUNGER20, data = state_df2)
+summary(mod_age)
+```
+
+The second model used the percentage of residents who are 65 or older and the percentage who are 18 or younger. This model explained about 24 percent of the variation in obesity rates `(given as R² = 0.242)`. The younger population variable was strongly significant `(p = 0.0003)`. States with more residents under age 18 tend to have higher adult obesity rates. We hypothesize that states with larger family and youth populations might also have environmental or economic conditions linked to higher obesity risk. The older population variable was not significant `(p = 0.1507)`. Overall, age does help predict adult obesity but only through the younger population measure. This model performs slightly worse than the race model but still reveals a pretty meaningful pattern.
+
+
+**Model 3: Combined Model (Age+Race)**
+```{r, echo=FALSE}
+mod_both <- lm(PCT_OBESE_ADULTS22 ~ PCT_NHWHITE20 + PCT_NHBLACK20 +PCT_HISP20 + PCT_NHASIAN20 +PCT_65OLDER20 + PCT_18YOUNGER20, data = state_df2)
+
+summary(mod_both)
+
+```
+
+
+The combined model used both race and age predictors. This model improved accuracy by a large chunk. It produced an `R² of 0.534` which basically means it explains over half of the variation in obesity rates. In this model, the percent under age 18 remained a strong positive predictor `(p < 0.000001)`. The percent over age 65 also became significant `(p = 0.0165)`. Race effects became slightly weaker but the percent of Asian residents continued to show a protective association. The improvement in R² shows that race and age together predict obesity much better than either alone.
+
+
+To visualize the model performance, we created predicted vs actual plots for all three models. This is very similar to the first question we answered. These are shown below. When the predictions line up close to the dashed 1 to 1 line, the model is doing a good job. The combined model appears closest to the line. The race-only and age-only models have a much looser spread of points. This visual confirms the numerical results from the tables. The combined model gives us the most accurate predictions.
+
+After fitting our three models, we also wanted to test how well the race and age combined model performs on new data. To do this, we used an 80/20 train-test split. The model was trained on 80 percent of the states and then tested on the remaining 20 percent. The goal of this step was to see if the model could make accurate predictions on states it had never seen before. The test `RMSE was about 2.72` which shows that the model keeps reasonable accuracy outside the training sample. Again, this is good for topics in social sciences. We chose an 80/20 split instead of a 70/30 split because our dataset has only 50 states. Using 80 percent of the data for training gives the model more information to learn the relationships between variables while still leaving enough test points to check performance (with a 70/30 split, the test group would only contain around 15 states which increases the chance of random variation and “noisier” RMSE values). The 80/20 split essentially creates a better balance between model learning and model evaluation when the dataset is small. The scatterplot of predicted vs actual obesity rates shows that predictions are close to the perfect prediction line which supports the idea that the combined race and age model generalizes well.
+
+
+```{r, echo=FALSE}
+plot_df <- state_df2 %>%
+  ungroup() %>%           
+  mutate(actual = PCT_OBESE_ADULTS22,pred_race  = predict(mod_race,  newdata = state_df2),pred_age   = predict(mod_age,   newdata = state_df2),pred_both  = predict(mod_both,  newdata = state_df2)) %>%
+  pivot_longer(cols = c(pred_race, pred_age, pred_both),names_to = "Model",values_to = "Predicted") %>%
+  mutate(Model = recode(Model,pred_race = "Race Only",pred_age  = "Age Only",pred_both = "Race + Age Combined"))
+
+ggplot(plot_df, aes(Predicted, actual)) +
+  geom_point() +
+  geom_abline(linetype="dashed") +
+  facet_wrap(~Model) +
+  labs(title="Predicted vs Actual Obesity Rates",
+       subtitle="Race + Age combined clearly predicts best",
+       x="Predicted Obesity %",
+       y="Actual Obesity %") +
+  theme_minimal()
+
+state_clean <- state_df2 %>% ungroup()
+
+set.seed(123)
+train_index <- sample(nrow(state_clean), size = 0.8*nrow(state_clean))
+train <- state_clean[train_index, ]
+test  <- state_clean[-train_index, ]
+
+mod_split <- lm(PCT_OBESE_ADULTS22 ~ 
+                  PCT_NHWHITE20 + PCT_NHBLACK20 + PCT_HISP20 + PCT_NHASIAN20 +
+                  PCT_65OLDER20 + PCT_18YOUNGER20,
+                data = train)
+
+test_pred <- predict(mod_split, newdata = test)
+
+plot_test <- data.frame(actual = test$PCT_OBESE_ADULTS22,predicted = test_pred)
+```
+
+
+After fitting our three models, we also tested how well the race and age combined model performs on new data. To do this, we used an 80/20 train-test split. The model was trained on 80 percent of the states and then tested on the remaining 20 percent. The goal of this step was to see if the model could make accurate predictions on states it had never seen before. The test `RMSE was about 2.72` which shows that the model keeps reasonable accuracy outside the training sample. Again, this is good for topics in social sciences. We chose an 80/20 split instead of a 70/30 split because our dataset has only 50 states. Using 80 percent of the data for training gives the model more information to learn the relationships between variables while still leaving enough test points to check performance (with a 70/30 split, the test group would only contain around 15 states which increases the chance of random variation and noisier RMSE values). The 80/20 split creates a better balance between model learning and model evaluation when the dataset is small. The scatterplot of predicted vs actual obesity rates shows that predictions are close to the perfect prediction line which supports the idea that the combined race and age model generalizes well.
+
+
+```{r, echo=FALSE}
+library(ggplot2)
+
+ggplot(plot_test, aes(x = predicted, y = actual)) +
+  geom_point(color = "steelblue", size = 3) +
+  geom_abline(linetype="dashed", color="red", linewidth=1) +
+  labs(
+    title = "80/20 Train-Test Performance: Race + Age Model",
+    subtitle = paste("RMSE =", round(sqrt(mean((plot_test$actual - plot_test$predicted)^2)), 2)),
+    x = "Predicted Obesity (%)",
+    y = "Actual Obesity (%)",
+  ) +
+  theme_minimal()
+```
+
+
+In essence, across all methods, we found that both race and age demographics are decent predictors. Race and age each capture different parts of a state's population structure. When combined, they produce a stronger and more “complete picture”. The tables and figures in this section show that demographic patterns have real predictive value for understanding obesity at the state level.
+
+
+# CONCLUSION
+
+Our results showed that income and store type density were among the strongest predictors of obesity. States with more dollar stores per capita and low access to stores tended to have higher obesity rates, even after accounting for household income. These findings show that structural and economic conditions play a significant role in shaping health outcomes. Our demographic analysis also showed that race and age matter in meaningful ways. In the demographic models, race explained a moderate portion of the variation in obesity, and age explained slightly less, but the combined model explained more than half of the variation. Higher percentages of residents under age eighteen were linked with higher obesity rates, and higher percentages of Asian residents were linked with lower obesity rates. The combined model also performed well on a train-test split, which supports the reliability of these findings. These results emphasize that obesity is shaped by a combination of economic, environmental, and demographic factors rather than individual behavior alone. Recognizing these broader influences can help policymakers and public health officials direct their resources more effectively toward communities where healthy f1ood access remains limited. For instance, states with restricted access to grocery stores or heavy reliance on low-cost retail outlets may benefit from improved transportation options or incentives that encourage the development of stores with healthier food options. 
+
+
+Moving forward, it is also important to acknowledge the limitations of the dataset and the simplicity of linear models. Future work could use additional predictors such as health-care access, or education data or use more flexible modeling, which may capture nonlinear patterns that linear regression cannot. Expanding the dataset to include multiple years of obesity trends could also help identify causal pathways rather than associations.
+
+

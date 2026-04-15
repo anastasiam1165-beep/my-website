@@ -1,0 +1,88 @@
+---
+# ============================================================
+# ABOUT ME PAGE (aboutme.qmd)
+# This is a Quarto Markdown file. You can mix regular text,
+# HTML, and special Quarto features on the same page.
+# The section between the --- lines is called the "front matter"
+# and controls page-level settings.
+# ============================================================
+
+title: "About Me"   # ✏️ This becomes the page title shown in the browser tab
+---
+
+```{=html}
+<!-- ============================================================
+  PROFILE PHOTO
+  - Replace "headshot.jpg" with your actual image filename
+  - Make sure the image file is saved in the same folder as this .qmd file
+  - width/height control the display size (both set to 400px = square crop)
+  - object-position: "50% 32%" shifts the crop upward to better frame a face
+    → try "50% 50%" for dead center, or "50% 20%" to crop even higher
+  - border: adds a solid dark border around the photo
+  ============================================================ -->
+```
+
+<p style="text-align: center;">
+
+<img src="Photoroom_20240510_132841.jpeg" width="400px" height="400px" style="object-fit: cover;
+              object-position: 50% 32%;
+              border: 3px solid #333;
+              margin-bottom: 30px;"/>
+
+</p>
+
+```{=html}
+<!-- ============================================================
+  BIO / INTRODUCTION
+  ✏️ Replace the placeholder below with 2–4 sentences about yourself.
+  Example:
+    Hi! I'm Jane Smith, a second-year Computer Science student at UNC Chapel Hill.
+    I'm passionate about data visualization and building tools that make
+    information more accessible. Outside of class, I love hiking and photography.
+  ============================================================ -->
+```
+
+I am a Statistics and Analytics student at UNC Chapel Hill. After graduation, I plan to pursue a Master’s degree to continue my education and deepen my knowledge in statistics and data science.
+
+I have proficient experience with tools like R, Python, and SQL, and I have built projects analyzing large datasets to understand patterns and relationships. 
+
+```{=html}
+<!-- ============================================================
+  RESUME LINK
+  - "Example Resume" is the clickable link text — ✏️ change to "My Resume" or similar
+  - example_resume.pdf is the filename — ✏️ rename to match your actual file
+  - Make sure your PDF is saved in the same folder as this .qmd file
+  ============================================================ -->
+```
+
+[My Resume](Anastasiia_Merchanskaia_Intern_2026.pdf) 
+
+```{=html}
+<!-- ============================================================
+  LINK TO PROJECTS PAGE
+  - proj.qmd refers to your other page — leave this as-is unless you renamed that file
+  ============================================================ -->
+```
+
+To view more information about my projects, please visit the [Projects](proj.qmd) tab.
+
+```{=html}
+<!-- ============================================================
+  CONTACT INFORMATION
+  ✏️ Replace every placeholder in angle brackets <> with your real info
+
+  EMAIL:
+    - Replace <youremail> with your email address (appears twice — once as
+      display text, once as the mailto: link)
+
+  LINKEDIN:
+    - Replace <Anastasiia Merchanskaia> with how you want your name to appear as link text
+    - Replace <https://www.linkedin.com/in/anastasiia-merchanskaia
+      Example: https://www.linkedin.com/in/janesmith
+  ============================================================ -->
+```
+
+**Contact Information:**
+
+-   Email: [anastasiam1165@gmail.com](mailto:anastasiam1165@gmail.com)
+-   LinkedIn: [Anastasiia Merchanskaia](https://www.linkedin.com/in/anastasiia-merchanskaia) 
