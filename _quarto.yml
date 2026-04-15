@@ -3,7 +3,7 @@ project:
   output-dir: docs
 
 website:
-  title: "Anastasiia Merchanskaia's Personal Website"
+  title: "Anastasiia Merchanskaia"
   search:
     location: navbar
     type: overlay
@@ -52,7 +52,7 @@ format:
           }
         </style>
         <div class="sticky-header">
-        Anastasiia's Personal Website
+        Anastasiia Merchanskaia
         </div>
 
 site-url: "https://anastasiam1165-beep.github.io/Website-Workshop/"
